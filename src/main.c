@@ -1,11 +1,15 @@
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+const char *builtins[] = {"echo", "exit", "type"};
+
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
-  while (1) {
+  while (true) {
     // Uncomment this block to pass the first stage
     printf("$ ");
 
@@ -39,6 +43,22 @@ int main(int argc, char *argv[]) {
       } else {
         int code = atoi(ptr);
         return code;
+      }
+    } else if (strcmp(ptr, "type") == 0) {
+      ptr = strtok(NULL, " ");
+      if (ptr == NULL) {
+        continue;
+      }
+      bool found = false;
+      for (size_t i = 0; i < 3; ++i) {
+        if (strcmp(ptr, builtins[i]) == 0) {
+          printf("%s is a shell builtin\n", ptr);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        printf("%s: not found\n", ptr);
       }
     } else {
       printf("%s: command not found\n", ptr);
