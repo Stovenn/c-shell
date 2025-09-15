@@ -1,8 +1,10 @@
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 int echo_fn(int argc, char **argv);
 int echo_fn(int argc, char **argv) {
@@ -42,6 +44,25 @@ int type_fn(int argc, char **argv) {
       break;
     }
   }
+  if (!found) {
+    // try to look in PATH
+    const char *path = getenv("PATH");
+    char *copy = strdup(path);
+    char *token = strtok(copy, ":");
+    while (token != NULL) {
+      struct stat sb;
+      char fullpath[PATH_MAX];
+      snprintf(fullpath, sizeof(fullpath), "%s/%s", token, argv[1]);
+      if (stat(fullpath, &sb) == 0 && sb.st_mode & S_IXUSR) {
+        printf("%s is %s\n", argv[1], fullpath);
+        found = true;
+        break;
+      }
+      token = strtok(NULL, ":");
+    }
+    free(copy);
+  }
+
   if (!found) {
     printf("%s not found\n", argv[1]);
     return 1;
