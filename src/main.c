@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 int echo_fn(int argc, char **argv);
 int echo_fn(int argc, char **argv) {
@@ -123,6 +125,32 @@ int main(int argc, char *argv[]) {
         found = true;
         break;
       }
+    }
+    if (!found) {
+      // try to look in PATH
+      const char *path = getenv("PATH");
+      char *copy = strdup(path);
+      char *token = strtok(copy, ":");
+      while (token != NULL) {
+        struct stat sb;
+        char fullpath[PATH_MAX];
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", token, tokens[0]);
+        if (stat(fullpath, &sb) == 0 && sb.st_mode & S_IXUSR) {
+          pid_t pid = fork();
+          if (pid < 0) {
+            perror("fork failed");
+            return 1;
+          } else if (pid == 0) {
+            execv(fullpath, tokens);
+          } else {
+            wait(NULL);
+          }
+          found = true;
+          break;
+        }
+        token = strtok(NULL, ":");
+      }
+	free(copy);
     }
     if (!found) {
       printf("%s: command not found\n", tokens[0]);
