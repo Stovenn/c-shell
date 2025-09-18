@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-const char *builtins_list[] = {"echo", "exit", "type"};
+const char *builtins_list[] = {"echo", "exit", "type", "pwd"};
 
 int type_fn(int argc, char **argv) {
   if (argc != 2) {

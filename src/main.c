@@ -1,6 +1,7 @@
 #include "echo.h"
 #include "exit.h"
 #include "type.h"
+#include "pwd.h"
 
 #include <limits.h>
 #include <stdbool.h>
@@ -21,6 +22,7 @@ struct builtin builtins[] = {
     {"echo", echo_fn},
     {"exit", exit_fn},
     {"type", type_fn},
+    {"pwd", pwd_fn},
 };
 
 int main(int argc, char *argv[]) {
