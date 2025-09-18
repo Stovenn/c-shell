@@ -7,3 +7,4 @@ Only for learning purposes and get familiar with the C syntax.
 - echo,
 - exit,
 - type
+- pwd
