@@ -1,7 +1,8 @@
+#include "cd.h"
 #include "echo.h"
 #include "exit.h"
-#include "type.h"
 #include "pwd.h"
+#include "type.h"
 
 #include <limits.h>
 #include <stdbool.h>
@@ -19,10 +20,8 @@ struct builtin {
 };
 
 struct builtin builtins[] = {
-    {"echo", echo_fn},
-    {"exit", exit_fn},
-    {"type", type_fn},
-    {"pwd", pwd_fn},
+    {"echo", echo_fn}, {"exit", exit_fn}, {"type", type_fn},
+    {"pwd", pwd_fn},   {"cd", cd_fn},
 };
 
 int main(int argc, char *argv[]) {
