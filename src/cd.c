@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
-int do_change_dir(const char *path){
+int do_change_dir(const char *path) {
   if (path == NULL) {
     return 1;
   }
@@ -21,6 +22,12 @@ int cd_fn(int argc, char **argv) {
     }
     return do_change_dir(path);
   }
-
+  if (strcmp(argv[1], "~") == 0) {
+      const char *path = getenv("HOME");
+      if (path == NULL) {
+        return 1;
+      }
+	return do_change_dir(path);
+    }
   return do_change_dir(argv[1]);
 }
