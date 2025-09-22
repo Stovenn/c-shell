@@ -24,6 +24,52 @@ struct builtin builtins[] = {
     {"pwd", pwd_fn},   {"cd", cd_fn},
 };
 
+int tokenize(char *input, char **tokens, int max_tokens);
+int tokenize(char *input, char **tokens, int max_tokens) {
+  int argc = 0;
+  char *p = input;
+
+  while (*p != '\0') {
+
+    while (*p == ' ' || *p == '\t') {
+      p++;
+    }
+    if (*p == '\0')
+      break;
+
+    if (argc >= max_tokens - 1)
+      break;
+
+    char *start;
+    if (*p == '\'') {
+      p++;
+      start = p;
+      while (*p != '\0' && *p != '\'') {
+        p++;
+      }
+      if (*p == '\0') {
+        fprintf(stderr, "");
+        return -1;
+      }
+      *p = '\0';
+      tokens[argc++] = start;
+      p++;
+    } else {
+      start = p;
+      while (*p != '\0' && *p != ' ' && *p != '\t') {
+        p++;
+      }
+      if (*p != '\0') {
+        *p = '\0';
+        p++;
+      }
+      tokens[argc++] = start;
+    }
+  }
+  tokens[argc] = NULL;
+  return argc;
+}
+
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
@@ -45,13 +91,7 @@ int main(int argc, char *argv[]) {
     }
 
     char *tokens[64];
-    int argCount = 0;
-    char *token = strtok(input, " ");
-    while (token != NULL) {
-      tokens[argCount++] = token;
-      token = strtok(NULL, " ");
-    }
-    tokens[argCount] = NULL;
+    int argCount = tokenize(input, tokens, 64);
     if (argCount == 0) {
       continue; // empty input
     }
