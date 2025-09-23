@@ -39,33 +39,32 @@ int tokenize(char *input, char **tokens, int max_tokens) {
 
     if (argc >= max_tokens - 1)
       break;
+    // Allocate a buffer for the token (on stack here, could malloc if needed)
+    static char buf[1024];
+    int len = 0;
 
-    char *start;
-    if (*p == '\'') {
-      p++;
-      start = p;
-      while (*p != '\0' && *p != '\'') {
-        p++;
+    while (*p != '\0' && *p != ' ' && *p != '\t') {
+      if (*p == '\'') {
+        // Inside single quotes
+        p++; // skip opening '
+        while (*p != '\0' && *p != '\'') {
+          buf[len++] = *p++;
+        }
+        if (*p == '\0') {
+          fprintf(stderr, "Syntax error: unterminated single quote\n");
+          return -1;
+        }
+        p++; // skip closing '
+      } else {
+        // Regular char
+        buf[len++] = *p++;
       }
-      if (*p == '\0') {
-        fprintf(stderr, "");
-        return -1;
-      }
-      *p = '\0';
-      tokens[argc++] = start;
-      p++;
-    } else {
-      start = p;
-      while (*p != '\0' && *p != ' ' && *p != '\t') {
-        p++;
-      }
-      if (*p != '\0') {
-        *p = '\0';
-        p++;
-      }
-      tokens[argc++] = start;
     }
+    buf[len] = '\0';
+
+    tokens[argc++] = strdup(buf); // strdup so it's persistent
   }
+
   tokens[argc] = NULL;
   return argc;
 }
@@ -135,6 +134,10 @@ int main(int argc, char *argv[]) {
     }
     if (!found) {
       printf("%s: command not found\n", tokens[0]);
+    }
+    // free tokens before next iteration
+    for (int i = 0; tokens[i] != NULL; i++) {
+      free(tokens[i]);
     }
   }
   return 0;
