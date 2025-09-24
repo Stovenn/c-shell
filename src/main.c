@@ -55,6 +55,17 @@ int tokenize(char *input, char **tokens, int max_tokens) {
           return -1;
         }
         p++; // skip closing '
+      } else if (*p == '"') {
+        // Inside single quotes
+        p++; // skip opening "
+        while (*p != '\0' && *p != '"') {
+          buf[len++] = *p++;
+        }
+        if (*p == '\0') {
+          fprintf(stderr, "Syntax error: unterminated double quote\n");
+          return -1;
+        }
+        p++; // skip closing "
       } else {
         // Regular char
         buf[len++] = *p++;
