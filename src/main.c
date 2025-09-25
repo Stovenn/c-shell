@@ -68,6 +68,9 @@ int tokenize(char *input, char **tokens, int max_tokens) {
         p++; // skip closing "
       } else {
         // Regular char
+        if (*p == '\\') {
+          p++;
+        }
         buf[len++] = *p++;
       }
     }
