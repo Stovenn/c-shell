@@ -59,7 +59,13 @@ int tokenize(char *input, char **tokens, int max_tokens) {
         // Inside single quotes
         p++; // skip opening "
         while (*p != '\0' && *p != '"') {
-          buf[len++] = *p++;
+
+          if (*p == '\\' && *(p + 1) != '\0') {
+            p++;
+            buf[len++] = *p++;
+          } else {
+            buf[len++] = *p++;
+          }
         }
         if (*p == '\0') {
           fprintf(stderr, "Syntax error: unterminated double quote\n");
@@ -75,7 +81,6 @@ int tokenize(char *input, char **tokens, int max_tokens) {
       }
     }
     buf[len] = '\0';
-
     tokens[argc++] = strdup(buf); // strdup so it's persistent
   }
 
