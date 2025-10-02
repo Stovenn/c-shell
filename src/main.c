@@ -4,6 +4,7 @@
 #include "pwd.h"
 #include "type.h"
 
+#include <ctype.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -24,31 +25,44 @@ struct builtin builtins[] = {
     {"pwd", pwd_fn},   {"cd", cd_fn},
 };
 
-int tokenize(char *input, char **tokens, int max_tokens);
 int tokenize(char *input, char **tokens, int max_tokens) {
+  if (!input || !tokens || max_tokens <= 0)
+    return -1;
+
   int argc = 0;
   char *p = input;
 
-  while (*p != '\0') {
+// convenience macro to append into local buffer with overflow check
+#define BUFSIZE 4096
+#define APPEND_CHAR(buf, len, ch)                                              \
+  do {                                                                         \
+    if ((len) >= (int)sizeof(buf) - 1) {                                       \
+      fprintf(stderr, "Token too long\n");                                     \
+      return -1;                                                               \
+    }                                                                          \
+    (buf)[(len)++] = (ch);                                                     \
+  } while (0)
 
-    while (*p == ' ' || *p == '\t') {
+  while (*p != '\0') {
+    // skip leading whitespace (space or tab)
+    while (*p == ' ' || *p == '\t')
       p++;
-    }
     if (*p == '\0')
       break;
 
     if (argc >= max_tokens - 1)
-      break;
-    // Allocate a buffer for the token (on stack here, could malloc if needed)
-    static char buf[1024];
+      break; // leave room for NULL terminator
+
+    char buf[BUFSIZE];
     int len = 0;
 
     while (*p != '\0' && *p != ' ' && *p != '\t') {
       if (*p == '\'') {
-        // Inside single quotes
+        // single-quote mode: take everything literally until next single quote
         p++; // skip opening '
         while (*p != '\0' && *p != '\'') {
-          buf[len++] = *p++;
+          APPEND_CHAR(buf, len, *p);
+          p++;
         }
         if (*p == '\0') {
           fprintf(stderr, "Syntax error: unterminated single quote\n");
@@ -56,15 +70,39 @@ int tokenize(char *input, char **tokens, int max_tokens) {
         }
         p++; // skip closing '
       } else if (*p == '"') {
-        // Inside single quotes
+        // double-quote mode: $, `, ", \ retain special meaning to the shell.
+        // For our tokenizer: backslash in double quotes only escapes ", $, `,
+        // \ and newline.
         p++; // skip opening "
         while (*p != '\0' && *p != '"') {
-
-          if (*p == '\\' && *(p + 1) != '\0') {
-            p++;
-            buf[len++] = *p++;
+          if (*p == '\\') {
+            // If backslash followed by newline: both are removed (line
+            // continuation)
+            if (*(p + 1) == '\n') {
+              p += 2;
+              continue;
+            }
+            char next = *(p + 1);
+            if (next == '"' || next == '\\' || next == '$' || next == '`') {
+              // remove backslash, keep next char
+              p++; // skip backslash
+              APPEND_CHAR(buf, len, *p);
+              p++;
+            } else if (next == '\0') {
+              // backslash at end inside double quotes: syntax error
+              fprintf(stderr,
+                      "Syntax error: trailing backslash in double quote\n");
+              return -1;
+            } else {
+              // POSIX: backslash before other chars is preserved as backslash +
+              // char
+              APPEND_CHAR(buf, len, '\\');
+              p++; // move to next char which we'll emit normally in next loop
+                   // iteration
+            }
           } else {
-            buf[len++] = *p++;
+            APPEND_CHAR(buf, len, *p);
+            p++;
           }
         }
         if (*p == '\0') {
@@ -72,19 +110,41 @@ int tokenize(char *input, char **tokens, int max_tokens) {
           return -1;
         }
         p++; // skip closing "
-      } else {
-        // Regular char
-        if (*p == '\\') {
+      } else if (*p == '\\') {
+        // Outside quotes: backslash escapes the next character (including
+        // newline -> continuation)
+        if (*(p + 1) == '\0') {
+          fprintf(stderr, "Syntax error: trailing backslash\n");
+          return -1;
+        }
+        if (*(p + 1) == '\n') {
+          // backslash-newline: remove both (line continuation)
+          p += 2;
+          continue;
+        } else {
+          // consume backslash and take next character literally
+          p++; // skip backslash
+          APPEND_CHAR(buf, len, *p);
           p++;
         }
-        buf[len++] = *p++;
+      } else {
+        // unquoted normal character
+        APPEND_CHAR(buf, len, *p);
+        p++;
       }
     }
+
     buf[len] = '\0';
-    tokens[argc++] = strdup(buf); // strdup so it's persistent
+    tokens[argc++] = strdup(buf);
+    if (tokens[argc - 1] == NULL) {
+      fprintf(stderr, "strdup failed\n");
+      return -1;
+    }
   }
 
   tokens[argc] = NULL;
+#undef APPEND_CHAR
+#undef BUFSIZE
   return argc;
 }
 
